@@ -117,7 +117,6 @@ def login():
         f"scope=email profile"
     )
     return redirect(google_auth_url)
-
 @app.route('/callback')
 def callback():
     code = request.args.get("code")
@@ -134,29 +133,37 @@ def callback():
         token_response = requests.post(token_url, data=data).json()
         access_token = token_response.get("access_token")
 
+        # Fetch user info
         user_info = requests.get(
             "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
             headers={"Authorization": f"Bearer {access_token}"}
         ).json()
 
-        # Save user info in session including profile picture URL
+        print(user_info)  # Debugging line
+
+        # Save user info in session
         session["user"] = {
-            "id": user_info["id"],
-            "name": user_info["name"],
-            "email": user_info["email"],
-            "picture": user_info["picture"]  # Add profile picture URL
+            "id": user_info.get("id", "Unknown ID"),
+            "name": user_info.get("name", "Unknown Name"),
+            "email": user_info.get("email", "Unknown Email"),
+            "picture": user_info.get("picture", "")
         }
 
         # Check if user exists in Firestore; if not, create them
-        user_ref = db.collection('users').document(user_info['id'])
+        user_ref = db.collection('users').document(session["user"]["id"])
         if not user_ref.get().exists:
-            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info["picture"]})
+            user_ref.set({
+                "email": session["user"]["email"],
+                "name": session["user"]["name"],
+                "picture": session["user"]["picture"]
+            })
 
         return redirect(url_for("index"))
     except Exception as e:
         print(f"Error in callback: {e}")
         flash("Une erreur s'est produite lors de l'authentification.")
         return redirect(url_for("index"))
+
 
 @app.route('/logout')
 def logout():
