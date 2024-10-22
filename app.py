@@ -112,12 +112,11 @@ def login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://research-data-to-provide-information-on.onrender.com/callback&"
+        f"redirect_uri=https://research-data-to-provide-information-on.onrender.com&"
         f"response_type=code&"
-        f"scope=openid email profile"  # Updated scope
+        f"scope=email profile"
     )
     return redirect(google_auth_url)
-
 @app.route('/callback')
 def callback():
     code = request.args.get("code")
@@ -126,7 +125,7 @@ def callback():
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": "https://research-data-to-provide-information-on.onrender.com/callback",  # Ensure this is consistent
+        "redirect_uri": "http://localhost:5000/callback",
         "grant_type": "authorization_code",
     }
     
@@ -141,16 +140,16 @@ def callback():
 
         # Save user info in session including profile picture URL
         session["user"] = {
-            "id": user_info["sub"],  # Use 'sub' for user ID
+            "id": user_info["id"],
             "name": user_info["name"],
             "email": user_info["email"],
-            "picture": user_info.get("picture")  # Use .get() to avoid KeyError if picture is not present
+            "picture": user_info["picture"]  # Add profile picture URL
         }
 
         # Check if user exists in Firestore; if not, create them
-        user_ref = db.collection('users').document(user_info['sub'])
+        user_ref = db.collection('users').document(user_info['id'])
         if not user_ref.get().exists:
-            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info.get("picture")})
+            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info["picture"]})
 
         return redirect(url_for("index"))
     except Exception as e:
@@ -158,45 +157,6 @@ def callback():
         flash("Une erreur s'est produite lors de l'authentification.")
         return redirect(url_for("index"))
 
-@app.route('/callback')
-def callback():
-    code = request.args.get("code")
-    token_url = "https://oauth2.googleapis.com/token"
-    data = {
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": "https://research-data-to-provide-information-on.onrender.com/callback",  # Ensure this is consistent
-        "grant_type": "authorization_code",
-    }
-    
-    try:
-        token_response = requests.post(token_url, data=data).json()
-        access_token = token_response.get("access_token")
-
-        user_info = requests.get(
-            "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
-            headers={"Authorization": f"Bearer {access_token}"}
-        ).json()
-
-        # Save user info in session including profile picture URL
-        session["user"] = {
-            "id": user_info["sub"],  # Use 'sub' for user ID
-            "name": user_info["name"],
-            "email": user_info["email"],
-            "picture": user_info.get("picture")  # Use .get() to avoid KeyError if picture is not present
-        }
-
-        # Check if user exists in Firestore; if not, create them
-        user_ref = db.collection('users').document(user_info['sub'])
-        if not user_ref.get().exists:
-            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info.get("picture")})
-
-        return redirect(url_for("index"))
-    except Exception as e:
-        print(f"Error in callback: {e}")
-        flash("Une erreur s'est produite lors de l'authentification.")
-        return redirect(url_for("index"))
 @app.route('/logout')
 def logout():
     session.pop("user", None)
