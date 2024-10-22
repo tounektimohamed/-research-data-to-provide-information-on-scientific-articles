@@ -112,11 +112,12 @@ def login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://research-data-to-provide-information-on.onrender.com&"
+        f"redirect_uri=https://research-data-to-provide-information-on.onrender.com/callback&"
         f"response_type=code&"
         f"scope=email profile"
     )
     return redirect(google_auth_url)
+
 @app.route('/callback')
 def callback():
     code = request.args.get("code")
