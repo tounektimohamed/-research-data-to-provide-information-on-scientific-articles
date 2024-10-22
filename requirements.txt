@@ -1,0 +1,6 @@
+Flask==2.3.3
+firebase-admin==6.0.0
+requests==2.31.0
+biopython==1.80
+scholarly==0.6.16
+gunicorn==20.1.0
