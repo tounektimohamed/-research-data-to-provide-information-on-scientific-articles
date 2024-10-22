@@ -2,5 +2,6 @@ Flask==2.3.3
 firebase-admin==6.0.0
 requests==2.31.0
 biopython==1.80
-scholarly>=1.7.0,<2.0.0  # Use the latest available version of scholarly
+scholarly>=1.7.0,<2.0.0
 gunicorn==20.1.0
+pandas>=1.5.0  # You can specify a specific version if needed
