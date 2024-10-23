@@ -19,10 +19,6 @@ firebase_admin.initialize_app(cred)
 # Initialize Firestore
 db = firestore.client()
 
-# OAuth client ID and secret (replace with your values from Firebase Console)
-GOOGLE_CLIENT_ID = "901804151640-nqv187k3fvfq9d4rnvf5dftsd2fqhjvb.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-
 # Function for PubMed search
 def search_pubmed(query):
     try:
@@ -105,61 +101,38 @@ def index():
 
     return render_template('index.html', user=user, results_pubmed=results_pubmed, results_scholarly=results_scholarly)
 
-@app.route('/login')
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            user = auth.create_user(email=email, password=password)
+            flash("Inscription réussie. Vous pouvez maintenant vous connecter.")
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f"Erreur d'inscription : {e}")
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    google_auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://research-data-to-provide-information-on.onrender.com/callback&"
-        f"response_type=code&"
-        f"scope=email profile"
-    )
-    return redirect(google_auth_url)
-
-@app.route('/callback')
-def callback():
-    code = request.args.get("code")
-    token_url = "https://oauth2.googleapis.com/token"
-    data = {
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": "http://localhost:5000/callback",
-        "grant_type": "authorization_code",
-    }
-    
-    try:
-        token_response = requests.post(token_url, data=data).json()
-        access_token = token_response.get("access_token")
-
-        # Fetch user info
-        user_info = requests.get(
-            "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
-            headers={"Authorization": f"Bearer {access_token}"}
-        ).json()
-
-        # Save user info in session
-        session["user"] = {
-            "id": user_info.get("id", "Unknown ID"),
-            "name": user_info.get("name", "Unknown Name"),
-            "email": user_info.get("email", "Unknown Email"),
-            "picture": user_info.get("picture", "")
-        }
-
-        # Check if user exists in Firestore; if not, create them
-        user_ref = db.collection('users').document(session["user"]["id"])
-        if not user_ref.get().exists:
-            user_ref.set({
-                "email": session["user"]["email"],
-                "name": session["user"]["name"],
-                "picture": session["user"]["picture"]
-            })
-
-        return redirect(url_for("index"))
-    except Exception as e:
-        print(f"Error in callback: {e}")
-        flash("Une erreur s'est produite lors de l'authentification.")
-        return redirect(url_for("index"))
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        try:
+            user = auth.get_user_by_email(email)
+            # Use Firebase Admin SDK to verify the password (this requires additional setup)
+            # Unfortunately, Firebase Admin SDK does not provide a way to sign in with email and password.
+            # You'll need to use Firebase Client SDK or implement your own verification.
+            session["user"] = {
+                "id": user.uid,
+                "email": user.email
+            }
+            flash("Connexion réussie.")
+            return redirect(url_for('index'))
+        except Exception as e:
+            flash(f"Erreur de connexion : {e}")
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
@@ -197,29 +170,6 @@ def panier():
     articles_list = [article.to_dict() for article in articles]
 
     return render_template('panier.html', user=user, articles=articles_list)
-
-@app.route('/add_article', methods=['POST'])
-def add_article():
-    user = session.get("user")
-    if not user:
-        flash("Veuillez vous connecter pour ajouter des articles.")
-        return redirect(url_for("login"))
-
-    user_id = user["id"]
-    titre = request.form.get('titre')
-    annee = request.form.get('annee')
-    lien = request.form.get('lien')
-
-    # Add article to Firestore
-    panier_ref = db.collection('users').document(user_id).collection('panier')
-    panier_ref.add({
-        'Titre': titre,
-        'Année': annee,
-        'Lien': lien
-    })
-
-    flash("Article ajouté avec succès au panier!")
-    return redirect(url_for('panier'))
 
 @app.route('/remove_article/<string:titre>', methods=['POST'])
 def remove_article(titre):

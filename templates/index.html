@@ -48,9 +48,12 @@
             text-decoration: underline;
         }
         .rounded-circle {
-    border-radius: 50%; /* Makes the image circular */
-}
-
+            border-radius: 50%; /* Makes the image circular */
+        }
+        .alert-custom {
+            border-radius: 20px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -151,12 +154,14 @@
                 </tbody>
             </table>
         {% else %}
-            <p>Aucun résultat trouvé.</p>
+            <div class="alert alert-warning alert-custom" role="alert">
+                Aucun résultat trouvé.
+            </div>
         {% endif %}
     </div>
 
     <footer class="footer">
-        <p>&copy; 2024 Recherche d'Articles. developper par Tounekti Mohamed</p>
+        <p>&copy; 2024 Recherche d'Articles. Développé par Tounekti Mohamed</p>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
