@@ -7,134 +7,103 @@ from scholarly import scholarly
 import requests
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with your secret key
+app.secret_key = 'your_secret_key'  # Remplacez par une clé secrète sécurisée.
 
-# Configure the email for Entrez
-Entrez.email = "your_email@example.com"  # Replace with your email
+Entrez.email = "your_email@example.com"  # Remplacez par votre email.
 
-# Initialize Firebase
-cred = credentials.Certificate("serviceAccountKey.json")  # Path to your Firebase service account key
+# Firebase & Firestore initialization
+cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
-
-# Initialize Firestore
 db = firestore.client()
 
-# OAuth client ID and secret (replace with your values from Firebase Console)
+# Identifiants OAuth (Firebase Console)
 GOOGLE_CLIENT_ID = "901804151640-nqv187k3fvfq9d4rnvf5dftsd2fqhjvb.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"
 
-# Function for PubMed search
-def search_pubmed(query):
+def handle_pubmed_search(query):
+    """Recherche PubMed avec gestion des erreurs."""
     try:
         handle = Entrez.esearch(db="pubmed", term=query)
         record = Entrez.read(handle)
         handle.close()
-        ids = record["IdList"]
-        results = []
 
-        if ids:
-            id_str = ','.join(ids)
-            handle = Entrez.efetch(db="pubmed", id=id_str, retmode="xml")
+        ids = record.get("IdList", [])
+        if not ids:
+            return []
+
+        id_str = ",".join(ids)
+        with Entrez.efetch(db="pubmed", id=id_str, retmode="xml") as handle:
             articles = Entrez.read(handle)
-            handle.close()
 
-            for article in articles.get("PubmedArticle", []):
-                citation = article.get("MedlineCitation", {})
-                if citation:
-                    title = citation.get("Article", {}).get("ArticleTitle", "Titre non disponible")
-                    article_date = citation.get("Article", {}).get("ArticleDate", [])
-                    year = article_date[0].get("Year", "Année non disponible") if article_date else "Année non disponible"
-                    pubmed_id = citation.get('PMID', "ID non disponible")
-                    url = f"https://pubmed.ncbi.nlm.nih.gov/{pubmed_id}/"
-                    results.append({"Titre": title, "Année": year, "Lien": url})
-
-        return results
+        return [
+            {
+                "Titre": article.get("MedlineCitation", {}).get("Article", {}).get("ArticleTitle", "Titre non disponible"),
+                "Année": article.get("MedlineCitation", {}).get("Article", {}).get("ArticleDate", [{}])[0].get("Year", "N/A"),
+                "Lien": f"https://pubmed.ncbi.nlm.nih.gov/{article['MedlineCitation'].get('PMID', 'N/A')}/"
+            }
+            for article in articles.get("PubmedArticle", [])
+        ]
     except Exception as e:
-        print(f"Error searching PubMed: {e}")
+        print(f"Erreur lors de la recherche PubMed : {e}")
         return []
 
-# Function for scholarly search
-def search_scholarly(query):
+def handle_scholarly_search(query):
+    """Recherche avec Scholarly."""
     results = []
-    search_query = scholarly.search_pubs(query)
-
-    for i in range(10):
-        try:
+    try:
+        search_query = scholarly.search_pubs(query)
+        for _ in range(10):
             pub = next(search_query)
-            title = pub.get("bib", {}).get("title", "Titre non disponible")
-            year = pub.get("bib", {}).get("pub_year", "Année non disponible")
-            url = pub.get("pub_url", "Non disponible")
-            results.append({"Titre": title, "Année": year, "Lien": url})
-        except StopIteration:
-            break
-        except Exception as e:
-            print(f"Error searching Scholarly: {e}")
-            break
-
+            results.append({
+                "Titre": pub.get("bib", {}).get("title", "Titre non disponible"),
+                "Année": pub.get("bib", {}).get("pub_year", "Année non disponible"),
+                "Lien": pub.get("pub_url", "Non disponible")
+            })
+    except (StopIteration, Exception) as e:
+        print(f"Erreur lors de la recherche Scholarly : {e}")
     return results
 
-# Function to add an article to favorites
 def ajouter_article_favori(user_id, article):
-    user_ref = db.collection('users').document(user_id)
-    panier_ref = user_ref.collection('panier').document(article['Titre'])
-    panier_ref.set(article)
+    """Ajout d'un article aux favoris de l'utilisateur."""
+    db.collection('users').document(user_id).collection('panier').document(article['Titre']).set(article)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     user = session.get("user")
-    results_pubmed = []
-    results_scholarly = []
+    results_pubmed, results_scholarly = [], []
 
     if request.method == 'POST':
         user_query = request.form.get('query')
-        start_year = request.form.get('start_year')
-        end_year = request.form.get('end_year')
+        start_year, end_year = request.form.get('start_year'), request.form.get('end_year')
 
-        # PubMed search
-        if start_year and end_year:
-            query_with_dates = f"{user_query} AND ({start_year}[PD] : {end_year}[PD])"
-        elif start_year:
-            query_with_dates = f"{user_query} AND ({start_year}[PD])"
-        elif end_year:
-            query_with_dates = f"{user_query} AND ({end_year}[PD])"
-        else:
-            query_with_dates = user_query
-
-        results_pubmed = search_pubmed(query_with_dates)
-
-        # Scholarly search
-        results_scholarly = search_scholarly(user_query)
+        query = f"{user_query} AND ({start_year}[PD] : {end_year}[PD])" if start_year and end_year else user_query
+        results_pubmed = handle_pubmed_search(query)
+        results_scholarly = handle_scholarly_search(user_query)
 
     return render_template('index.html', user=user, results_pubmed=results_pubmed, results_scholarly=results_scholarly)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email, password = request.form['email'], request.form['password']
         try:
-            user = auth.create_user(email=email, password=password)
-            flash("Utilisateur enregistré avec succès. Veuillez vous connecter.")
+            auth.create_user(email=email, password=password)
+            flash("Utilisateur enregistré avec succès.")
             return redirect(url_for('login'))
         except Exception as e:
-            flash(f"Erreur lors de l'enregistrement: {e}")
-            return redirect(url_for('register'))
+            flash(f"Erreur d'enregistrement : {e}")
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email, password = request.form['email'], request.form['password']
         try:
             user = auth.get_user_by_email(email)
-            # Firebase doesn't handle password verification in Python directly.
-            # Use Firebase Authentication SDK on frontend for password verification.
             session['user'] = {"id": user.uid, "email": email}
             return redirect(url_for('index'))
         except Exception as e:
-            flash(f"Erreur de connexion: {e}")
-            return redirect(url_for('login'))
+            flash(f"Erreur de connexion : {e}")
     return render_template('login.html')
 
 @app.route('/logout')
@@ -146,32 +115,25 @@ def logout():
 @app.route('/ajouter_article', methods=['POST'])
 def ajouter_article():
     if "user" not in session:
-        flash("Veuillez vous connecter pour ajouter un article à votre panier.")
+        flash("Veuillez vous connecter.")
         return redirect(url_for("login"))
 
-    article = {
-        "Titre": request.form["titre"],
-        "Année": request.form["annee"],
-        "Lien": request.form["lien"]
-    }
-    user_id = session["user"]["id"]
-    ajouter_article_favori(user_id, article)
-    flash("Article ajouté à votre panier avec succès.")
+    article = {key: request.form[key] for key in ["titre", "annee", "lien"]}
+    ajouter_article_favori(session["user"]["id"], article)
+    flash("Article ajouté aux favoris.")
     return redirect(url_for("index"))
 
-@app.route('/panier', methods=['GET', 'POST'])
+@app.route('/panier')
 def panier():
     user = session.get("user")
     if not user:
-        flash("Veuillez vous connecter pour accéder à votre panier.")
+        flash("Veuillez vous connecter.")
         return redirect(url_for("login"))
 
-    user_id = user["id"]
-    panier_ref = db.collection('users').document(user_id).collection('panier')
-    articles = panier_ref.stream()
-    articles_list = [article.to_dict() for article in articles]
-
-    return render_template('panier.html', user=user, articles=articles_list)
+    articles = [
+        doc.to_dict() for doc in db.collection('users').document(user["id"]).collection('panier').stream()
+    ]
+    return render_template('panier.html', user=user, articles=articles)
 
 if __name__ == '__main__':
     app.run(debug=True)
