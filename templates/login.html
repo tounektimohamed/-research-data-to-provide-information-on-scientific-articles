@@ -2,15 +2,12 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion</title>
 </head>
 <body>
-    <h1>Connexion</h1>
-    <form method="post">
-        <input type="email" name="email" placeholder="Votre email" required>
-        <input type="password" name="password" placeholder="Votre mot de passe" required>
-        <button type="submit">Se connecter</button>
-    </form>
-    <a href="{{ url_for('register') }}">Pas encore inscrit? Créez un compte ici.</a>
+    <h1>Bienvenue sur notre application</h1>
+    <p>Veuillez vous connecter pour accéder à toutes les fonctionnalités.</p>
+    <a href="{{ url_for('login_oauth') }}">Se connecter avec Google</a>
 </body>
 </html>

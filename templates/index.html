@@ -2,69 +2,165 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Accueil</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche d'Articles</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f7fa;
+            color: #333;
+        }
+        .navbar {
+            background-color: #007bff;
+        }
+        .navbar-brand, .navbar-nav .nav-link {
+            color: #fff !important;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        .form-control {
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary, .btn-success {
+            border-radius: 20px;
+        }
+        h1, h2 {
+            color: #007bff;
+        }
+        table {
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px 0;
+            background-color: #007bff;
+            color: white;
+        }
+        .article-link {
+            color: #007bff;
+        }
+        .article-link:hover {
+            text-decoration: underline;
+        }
+        .rounded-circle {
+    border-radius: 50%; /* Makes the image circular */
+}
+
+    </style>
 </head>
 <body>
-    <h1>Bienvenue!</h1>
-    {% if user %}
-        <p>Connecté en tant que {{ user.email }}</p>
-        <a href="{{ url_for('logout') }}">Déconnexion</a>
-        <a href="{{ url_for('panier') }}">Mon Panier</a>
-    {% else %}
-        <a href="{{ url_for('login') }}">Connexion</a>
-        <a href="{{ url_for('register') }}">S'inscrire</a>
-    {% endif %}
-
-    <h2>Recherche</h2>
-    <form method="post">
-        <input type="text" name="query" placeholder="Rechercher un article" required>
-        <input type="text" name="start_year" placeholder="Année de début (YYYY)">
-        <input type="text" name="end_year" placeholder="Année de fin (YYYY)">
-        <button type="submit">Rechercher</button>
-    </form>
-
-    <h2>Résultats PubMed</h2>
-    <ul>
-        {% for result in results_pubmed %}
-            <li>
-                <strong>{{ result.Titre }}</strong> ({{ result.Année }}) - <a href="{{ result.Lien }}">Voir</a>
+    <nav class="navbar navbar-expand-lg">
+        <a class="navbar-brand" href="#">Recherche d'Articles</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
                 {% if user %}
-                    <form action="{{ url_for('ajouter_article') }}" method="post">
-                        <input type="hidden" name="titre" value="{{ result.Titre }}">
-                        <input type="hidden" name="annee" value="{{ result.Année }}">
-                        <input type="hidden" name="lien" value="{{ result.Lien }}">
-                        <button type="submit">Ajouter au panier</button>
-                    </form>
+                    <li class="nav-item">
+                        <span class="nav-link">Bienvenue, {{ user.name }}!</span>
+                        {% if user.picture %}
+                            <img src="{{ user.picture }}" alt="Profile Picture" class="rounded-circle" style="width: 40px; height: 40px;">
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Déconnexion</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">
+                            <img src="https://yt3.googleusercontent.com/viNp17XpEF-AwWwOZSj_TvgobO1CGmUUgcTtQoAG40YaYctYMoUqaRup0rTxxxfQvWw3MvhXesw=s900-c-k-c0x00ffffff-no-rj" alt="Google" style="height: 20px; width: auto; margin-right: 5px;"> 
+                            Se connecter avec Google
+                        </a>
+                    </li>
                 {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-
-    <h2>Résultats Scholarly</h2>
-    <ul>
-        {% for result in results_scholarly %}
-            <li>
-                <strong>{{ result.Titre }}</strong> ({{ result.Année }}) - <a href="{{ result.Lien }}">Voir</a>
-                {% if user %}
-                    <form action="{{ url_for('ajouter_article') }}" method="post">
-                        <input type="hidden" name="titre" value="{{ result.Titre }}">
-                        <input type="hidden" name="annee" value="{{ result.Année }}">
-                        <input type="hidden" name="lien" value="{{ result.Lien }}">
-                        <button type="submit">Ajouter au panier</button>
-                    </form>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('panier') }}">Panier</a>
+                </li>
             </ul>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <h1 class="text-center">Recherche d'Articles</h1>
+
+        <form method="POST" class="mb-4">
+            <div class="form-group">
+                <label for="query">Rechercher:</label>
+                <input type="text" name="query" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="start_year">Année de début:</label>
+                <input type="number" name="start_year" class="form-control" placeholder="ex. 2020" min="1900" max="2100">
+            </div>
+            <div class="form-group">
+                <label for="end_year">Année de fin:</label>
+                <input type="number" name="end_year" class="form-control" placeholder="ex. 2023" min="1900" max="2100">
+            </div>
+            <button type="submit" class="btn btn-primary">Rechercher</button>
+            <button type="reset" class="btn btn-secondary ml-2">Réinitialiser</button>
+        </form>
+
+        {% if results_pubmed or results_scholarly %}
+            <h2>Résultats de la Recherche</h2>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Titre</th>
+                        <th>Année</th>
+                        <th>Lien</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results_pubmed %}
+                        <tr>
+                            <td>{{ result.Titre }}</td>
+                            <td>{{ result.Année }}</td>
+                            <td><a class="article-link" href="{{ result.Lien }}" target="_blank">Voir</a></td>
+                            <td>
+                                <form method="POST" action="{{ url_for('ajouter_article') }}">
+                                    <input type="hidden" name="titre" value="{{ result.Titre }}">
+                                    <input type="hidden" name="annee" value="{{ result.Année }}">
+                                    <input type="hidden" name="lien" value="{{ result.Lien }}">
+                                    <button type="submit" class="btn btn-success">Ajouter au Panier</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% for result in results_scholarly %}
+                        <tr>
+                            <td>{{ result.Titre }}</td>
+                            <td>{{ result.Année }}</td>
+                            <td><a class="article-link" href="{{ result.Lien }}" target="_blank">Voir</a></td>
+                            <td>
+                                <form method="POST" action="{{ url_for('ajouter_article') }}">
+                                    <input type="hidden" name="titre" value="{{ result.Titre }}">
+                                    <input type="hidden" name="annee" value="{{ result.Année }}">
+                                    <input type="hidden" name="lien" value="{{ result.Lien }}">
+                                    <button type="submit" class="btn btn-success">Ajouter au Panier</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Aucun résultat trouvé.</p>
         {% endif %}
-    {% endwith %}
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Recherche d'Articles. developper par Tounekti Mohamed</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
