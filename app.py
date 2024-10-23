@@ -110,25 +110,27 @@ def index():
 @app.route('/login')
 def login():
     google_auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://web-production-35f5e.up.railway.app&"
-        f"response_type=code&"
-        f"scope=email profile"
-    )
+    f"https://accounts.google.com/o/oauth2/v2/auth?"
+    f"client_id={GOOGLE_CLIENT_ID}&"
+    f"redirect_uri=https://web-production-35f5e.up.railway.app/callback&"
+    f"response_type=code&"
+    f"scope=openid email profile"
+)
+
     return redirect(google_auth_url)
 @app.route('/callback')
 def callback():
     code = request.args.get("code")
     token_url = "https://oauth2.googleapis.com/token"
-    data = {
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": "https://web-production-35f5e.up.railway.app/callback",
-        "grant_type": "authorization_code",
-    }
     
+    data = {
+    "code": code,
+    "client_id": GOOGLE_CLIENT_ID,
+    "client_secret": GOOGLE_CLIENT_SECRET,
+    "redirect_uri": "https://web-production-35f5e.up.railway.app/callback",
+    "grant_type": "authorization_code",
+}
+
     try:
         token_response = requests.post(token_url, data=data).json()
         access_token = token_response.get("access_token")
