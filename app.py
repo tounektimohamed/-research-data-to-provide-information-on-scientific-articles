@@ -7,10 +7,10 @@ from scholarly import scholarly
 import requests
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with your secret key
+app.secret_key = '6f9e1c87f03f1e7e1df14e765b7ef9f2db55f6de97e2bbf6'  # Replace with your secret key
 
 # Configure the email for Entrez
-Entrez.email = "your_email@example.com"  # Replace with your email
+Entrez.email = "tounekti17@gmail.com"  # Replace with your email
 
 # Initialize Firebase
 cred = credentials.Certificate("serviceAccountKey.json")  # Path to your Firebase service account key
@@ -112,9 +112,9 @@ def login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://web-production-35f5e.up.railway.app/callback&"
+        f"redirect_uri=https://web-production-35f5e.up.railway.app/callback&"  # Update this for production
         f"response_type=code&"
-        f"scope=email profile"
+        f"scope=openid email profile"
     )
     return redirect(google_auth_url)
 @app.route('/callback')
@@ -130,26 +130,42 @@ def callback():
     }
     
     try:
-        token_response = requests.post(token_url, data=data).json()
-        access_token = token_response.get("access_token")
+        # Get access token
+        token_response = requests.post(token_url, data=data)
+        token_response_json = token_response.json()
+        print(f"Token response: {token_response_json}")  # Log the token response
+        
+        access_token = token_response_json.get("access_token")
+        
+        if not access_token:
+            flash("Could not retrieve access token.")
+            return redirect(url_for("index"))
 
+        # Get user info
         user_info = requests.get(
             "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
             headers={"Authorization": f"Bearer {access_token}"}
         ).json()
 
-        # Save user info in session including profile picture URL
+        # Log user info
+        print(f"User info: {user_info}")
+
+        # Save user info in session
         session["user"] = {
-            "id": user_info["id"],
-            "name": user_info["name"],
-            "email": user_info["email"],
-            "picture": user_info["picture"]  # Add profile picture URL
+            "id": user_info.get("id"),
+            "name": user_info.get("name"),
+            "email": user_info.get("email"),
+            "picture": user_info.get("picture")
         }
 
         # Check if user exists in Firestore; if not, create them
         user_ref = db.collection('users').document(user_info['id'])
         if not user_ref.get().exists:
-            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info["picture"]})
+            user_ref.set({
+                "email": user_info["email"],
+                "name": user_info["name"],
+                "picture": user_info["picture"]
+            })
 
         return redirect(url_for("index"))
     except Exception as e:
