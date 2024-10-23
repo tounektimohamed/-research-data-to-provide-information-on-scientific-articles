@@ -20,8 +20,8 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # OAuth client ID and secret (replace with your values from Firebase Console)
-GOOGLE_CLIENT_ID = "901804151640-nqv187k3fvfq9d4rnvf5dftsd2fqhjvb.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_CLIENT_ID = "901804151640-jser2su33aqr6t1r7k6egafmgtn7k819.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
 
 # Function for PubMed search
 def search_pubmed(query):
