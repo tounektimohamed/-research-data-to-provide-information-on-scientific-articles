@@ -112,7 +112,7 @@ def login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri=https://web-production-35f5e.up.railway.app/callback&"
+        f"redirect_uri=https://web-production-35f5e.up.railway.app&"
         f"response_type=code&"
         f"scope=email profile"
     )
@@ -133,37 +133,29 @@ def callback():
         token_response = requests.post(token_url, data=data).json()
         access_token = token_response.get("access_token")
 
-        # Fetch user info
         user_info = requests.get(
             "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
             headers={"Authorization": f"Bearer {access_token}"}
         ).json()
 
-        print(user_info)  # Debugging line
-
-        # Save user info in session
+        # Save user info in session including profile picture URL
         session["user"] = {
-            "id": user_info.get("id", "Unknown ID"),
-            "name": user_info.get("name", "Unknown Name"),
-            "email": user_info.get("email", "Unknown Email"),
-            "picture": user_info.get("picture", "")
+            "id": user_info["id"],
+            "name": user_info["name"],
+            "email": user_info["email"],
+            "picture": user_info["picture"]  # Add profile picture URL
         }
 
         # Check if user exists in Firestore; if not, create them
-        user_ref = db.collection('users').document(session["user"]["id"])
+        user_ref = db.collection('users').document(user_info['id'])
         if not user_ref.get().exists:
-            user_ref.set({
-                "email": session["user"]["email"],
-                "name": session["user"]["name"],
-                "picture": session["user"]["picture"]
-            })
+            user_ref.set({"email": user_info["email"], "name": user_info["name"], "picture": user_info["picture"]})
 
         return redirect(url_for("index"))
     except Exception as e:
         print(f"Error in callback: {e}")
         flash("Une erreur s'est produite lors de l'authentification.")
         return redirect(url_for("index"))
-
 
 @app.route('/logout')
 def logout():
