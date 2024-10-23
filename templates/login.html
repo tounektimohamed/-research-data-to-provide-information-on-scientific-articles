@@ -2,52 +2,15 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Application</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Connexion</title>
 </head>
 <body>
-
-<div class="container mt-5">
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert alert-info">
-                {% for message in messages %}
-                    <p>{{ message }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <h2>Inscription</h2>
-    <form method="POST" action="{{ url_for('register') }}">
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" class="form-control" name="email" required>
-        </div>
-        <div class="form-group">
-            <label for="password">Mot de passe</label>
-            <input type="password" class="form-control" name="password" required>
-        </div>
-        <button type="submit" class="btn btn-primary">S'inscrire</button>
+    <h1>Connexion</h1>
+    <form method="post">
+        <input type="email" name="email" placeholder="Votre email" required>
+        <input type="password" name="password" placeholder="Votre mot de passe" required>
+        <button type="submit">Se connecter</button>
     </form>
-
-    <h2 class="mt-5">Connexion</h2>
-    <form method="POST" action="{{ url_for('login') }}">
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" class="form-control" name="email" required>
-        </div>
-        <div class="form-group">
-            <label for="password">Mot de passe</label>
-            <input type="password" class="form-control" name="password" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Se connecter</button>
-    </form>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <a href="{{ url_for('register') }}">Pas encore inscrit? Créez un compte ici.</a>
 </body>
 </html>

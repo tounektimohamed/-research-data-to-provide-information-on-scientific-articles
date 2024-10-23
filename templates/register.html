@@ -1,31 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>S'inscrire</title>
 </head>
-<body class="bg-light">
-  <div class="container d-flex align-items-center justify-content-center vh-100">
-    <div class="card shadow-lg p-4" style="width: 400px;">
-      <h3 class="text-center mb-4">Create an Account</h3>
-      <form method="POST" action="/register">
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input type="email" name="email" class="form-control" id="email" placeholder="Enter your email" required>
-        </div>
-        <div class="mb-3">
-          <label for="password" class="form-label">Password</label>
-          <input type="password" name="password" class="form-control" id="password" placeholder="Enter your password" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Register</button>
-        <div class="mt-3 text-center">
-          <span>Already have an account? <a href="/login">Log in</a></span>
-        </div>
-      </form>
-    </div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<body>
+    <h1>Inscription</h1>
+    <form method="post">
+        <input type="email" name="email" placeholder="Votre email" required>
+        <input type="password" name="password" placeholder="Votre mot de passe" required>
+        <button type="submit">S'inscrire</button>
+    </form>
+    <a href="{{ url_for('login') }}">Déjà inscrit? Connectez-vous ici.</a>
 </body>
 </html>

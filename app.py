@@ -4,22 +4,21 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import pandas as pd
 from Bio import Entrez
 from scholarly import scholarly
-import requests
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with your secret key
+app.secret_key = 'your_secret_key'  # Remplacez par votre clé secrète
 
-# Configure the email for Entrez
-Entrez.email = "your_email@example.com"  # Replace with your email
+# Configurez l'email pour Entrez
+Entrez.email = "your_email@example.com"  # Remplacez par votre email
 
-# Initialize Firebase
-cred = credentials.Certificate("serviceAccountKey.json")  # Path to your Firebase service account key
+# Initialisez Firebase
+cred = credentials.Certificate("serviceAccountKey.json")  # Chemin vers votre clé de service Firebase
 firebase_admin.initialize_app(cred)
 
-# Initialize Firestore
+# Initialisez Firestore
 db = firestore.client()
 
-# Function for PubMed search
+# Fonction de recherche PubMed
 def search_pubmed(query):
     try:
         handle = Entrez.esearch(db="pubmed", term=query)
@@ -49,7 +48,7 @@ def search_pubmed(query):
         print(f"Error searching PubMed: {e}")
         return []
 
-# Function for scholarly search
+# Fonction de recherche Scholarly
 def search_scholarly(query):
     results = []
     search_query = scholarly.search_pubs(query)
@@ -69,7 +68,7 @@ def search_scholarly(query):
 
     return results
 
-# Function to add an article to favorites
+# Fonction pour ajouter un article aux favoris
 def ajouter_article_favori(user_id, article):
     user_ref = db.collection('users').document(user_id)
     panier_ref = user_ref.collection('panier').document(article['Titre'])
@@ -86,7 +85,7 @@ def index():
         start_year = request.form.get('start_year')
         end_year = request.form.get('end_year')
 
-        # Constructing the query for PubMed search
+        # Construction de la requête pour la recherche PubMed
         if start_year and end_year:
             query_with_dates = f"{user_query} AND ({start_year}[PD] : {end_year}[PD])"
         elif start_year:
@@ -121,9 +120,6 @@ def login():
         password = request.form['password']
         try:
             user = auth.get_user_by_email(email)
-            # Use Firebase Admin SDK to verify the password (this requires additional setup)
-            # Unfortunately, Firebase Admin SDK does not provide a way to sign in with email and password.
-            # You'll need to use Firebase Client SDK or implement your own verification.
             session["user"] = {
                 "id": user.uid,
                 "email": user.email
@@ -164,7 +160,7 @@ def panier():
         return redirect(url_for("login"))
 
     user_id = user["id"]
-    # Fetch the user's articles from Firestore
+    # Récupérer les articles de l'utilisateur depuis Firestore
     panier_ref = db.collection('users').document(user_id).collection('panier')
     articles = panier_ref.stream()
     articles_list = [article.to_dict() for article in articles]
@@ -181,7 +177,7 @@ def remove_article(titre):
     user_id = user["id"]
     panier_ref = db.collection('users').document(user_id).collection('panier')
 
-    # Query to find the article by title
+    # Requête pour trouver l'article par titre
     query = panier_ref.where('Titre', '==', titre).limit(1).stream()
     for article in query:
         panier_ref.document(article.id).delete()
